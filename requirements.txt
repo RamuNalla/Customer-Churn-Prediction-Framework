@@ -1,0 +1,55 @@
+pandas>=1.5.0
+numpy>=1.21.0
+scipy>=1.9.0
+
+# Machine Learning
+scikit-learn>=1.1.0
+xgboost>=1.6.0
+lightgbm>=3.3.0
+catboost>=1.1.0
+optuna>=3.0.0
+
+# Deep Learning (Optional)
+tensorflow>=2.10.0
+torch>=1.12.0
+pytorch-tabnet>=4.0
+
+# Visualization
+matplotlib>=3.5.0
+seaborn>=0.11.0
+plotly>=5.10.0
+
+# Model Interpretation
+shap>=0.41.0
+lime>=0.2.0.1
+
+# Experiment Tracking
+mlflow>=1.28.0
+
+# API and Deployment
+fastapi>=0.85.0
+uvicorn>=0.18.0
+pydantic>=1.10.0
+
+# Database
+sqlalchemy>=1.4.0
+psycopg2-binary>=2.9.0
+
+# Utilities
+python-dotenv>=0.19.0
+pyyaml>=6.0
+joblib>=1.1.0
+tqdm>=4.64.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Jupyter
+jupyter>=1.0.0
+ipykernel>=6.15.0
+
+# Development
+black>=22.0.0
+flake8>=5.0.0
+isort>=5.10.0
