@@ -45,3 +45,57 @@ class DataExplorer:                     # comprehensive data exploration class
         self.logger = logging.getLogger(__name__)       # it helps include the name of the module where the logger is used during logging
 
 
+    def load_data(self) -> pd.DataFrame:                # load and perform initial data validation
+        try:
+            self.logger.info(f"Loading data from {self.data_path}")
+            self.df = pd.read_csv(self.data_path)
+            
+            self.logger.info(f"Data loaded successfully. Shape: {self.df.shape}")
+            
+            self.data_quality_report['shape'] = self.df.shape
+            self.data_quality_report['columns'] = list(self.df.columns)
+            self.data_quality_report['dtypes'] = self.df.dtypes.to_dict()
+
+            return self.df
+        
+        except Exception as e:
+            self.logger.error(f"Error loading data: {e}")
+            raise
+
+    
+    def data_quality_assessment(self) -> Dict[str, Any]:          # assess data quality 
+        
+        self.logger.info("Starting data quality assessment...  ")
+
+        self.data_quality_report['basic_stats'] = {                 # basic statistics about the dataset
+            'total_records': len(self.df),
+            'total_features': len(self.df.columns),
+            'memory_usage_mb': self.df.memory_usage(deep=True).sum() / 1024**2      # Total memory usage by DF in MB
+        } 
+
+        missing_data = self.df.isnull().sum()                           # count of missing values per column
+        missing_percentage = (missing_data / len(self.df)) * 100        # percentage of missing values per column
+
+        self.data_quality_report['missing_values'] = {
+            'columns_with_missing': missing_data[missing_data > 0].to_dict(),
+            'missing_percentage': missing_percentage[missing_percentage > 0].to_dict(),
+            'total_missing_cells': int(missing_data.sum()),
+            'percentage_missing_cells': (missing_data.sum() / (self.df.shape[0] * self.df.shape[1])) * 100
+        }
+
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = self.df.select_dtypes(include=['object']).columns.tolist()
+
+        self.data_quality_report['data_types'] = {
+            'numeric_columns': numeric_cols,
+            'categorical_columns': categorical_cols,
+            'numeric_count': len(numeric_cols),
+            'categorical_count': len(categorical_cols)
+        }
+
+        duplicates = self.df.duplicated().sum()               # count of duplicate rows
+        self.data_quality_report['duplicates'] = {
+            'duplicate_count': duplicates,
+            'duplicate_percentage': (duplicates / len(self.df)) * 100
+        }
+
