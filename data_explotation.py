@@ -99,3 +99,26 @@ class DataExplorer:                     # comprehensive data exploration class
             'duplicate_percentage': (duplicates / len(self.df)) * 100
         }
 
+        unique_values = {}                              # count and percentage of unique values per column  
+        for col in self.df.columns:
+            unique_values[col] = {
+                'unique_count': self.df[col].nunique(),
+                'unique_percentage': (self.df[col].nunique() / len(self.df)) * 100
+            }
+        self.data_quality_report['unique_values'] = unique_values
+
+        issues = []
+
+        all_missing = [col for col in self.df.columns if self.df[col].isnull().all()]
+        if all_missing:
+            issues.append(f"Columns with all missing values: {all_missing}")
+
+        high_cardinality = [col for col in categorical_cols if self.df[col].nunique() > 50]
+        if high_cardinality:
+            issues.append(f"High cardinality categorical columns: {high_cardinality}")
+        
+        self.data_quality_report['potential_issues'] = issues
+        
+        self.logger.info("Data quality assessment completed")
+        return self.data_quality_report
+
