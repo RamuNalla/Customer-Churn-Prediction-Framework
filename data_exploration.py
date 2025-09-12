@@ -105,6 +105,7 @@ class DataExplorer:                     # comprehensive data exploration class
                 'unique_count': self.df[col].nunique(),
                 'unique_percentage': (self.df[col].nunique() / len(self.df)) * 100
             }
+        
         self.data_quality_report['unique_values'] = unique_values
 
         issues = []
@@ -122,3 +123,92 @@ class DataExplorer:                     # comprehensive data exploration class
         self.logger.info("Data quality assessment completed")
         return self.data_quality_report
 
+    
+    def outlier_detection(self) -> Dict[str, Any]:              # detect outliers in numberic columns using multiple methods
+        
+        self.logger.info("Starting outlier detection...")
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
+
+        if 'customerID' in numeric_cols:                        # Remove ID column if numeric
+            numeric_cols.remove('customerID')
+
+        outlier_report = {}
+
+        for col in numeric_cols:
+            col_data = self.df[col].dropna()
+            
+            Q1 = col_data.quantile(0.25)             # IQR Method
+            Q3 = col_data.quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+
+            iqr_outliers = ((col_data < lower_bound) | (col_data > upper_bound)).sum()
+
+            z_scores = np.abs(stats.zscore(col_data))       # Z-Score Method
+            zscore_outliers = (z_scores > 3).sum()
+
+            median = np.median(col_data)                    # Modified Z-Score Method
+            mad = np.median(np.abs(col_data - median))
+            modified_z_scores = 0.6745 * (col_data - median) / mad
+            modified_zscore_outliers = (np.abs(modified_z_scores) > 3.5).sum()
+
+            outlier_report[col] = {
+                'iqr_outliers': iqr_outliers,
+                'iqr_percentage': (iqr_outliers / len(col_data)) * 100,
+                'zscore_outliers': zscore_outliers,
+                'zscore_percentage': (zscore_outliers / len(col_data)) * 100,
+                'modified_zscore_outliers': modified_zscore_outliers,
+                'modified_zscore_percentage': (modified_zscore_outliers / len(col_data)) * 100,
+                'bounds': {
+                    'iqr_lower': lower_bound,
+                    'iqr_upper': upper_bound
+                }
+            }
+
+        self.data_quality_report['outliers'] = outlier_report
+        self.logger.info("Outlier detection completed")
+        return outlier_report
+    
+
+    def target_variable_analysis(self, target_col: str = 'Churn') -> Dict[str, Any]:        # analyze the target variable distribution and its characteristics
+
+        self.logger.info(f"Analyzing target variable: {target_col}")
+
+        if target_col not in self.df.columns:
+            self.logger.error(f"Target column '{target_col}' not found in dataset")
+            return {}
+        
+        target_analysis = {}
+
+        value_counts = self.df[target_col].value_counts()                       # basic distribution
+        percentage = self.df[target_col].value_counts(normalize=True) * 100 
+
+        target_analysis['distribution'] = {
+            'value_counts': value_counts.to_dict(),
+            'percentages': percentage.to_dict(),
+            'total_samples': len(self.df[target_col])
+        }
+
+        if len(value_counts) == 2:              # class imbalance analysis for Binary classification
+            minority_class = value_counts.min()
+            majority_class = value_counts.max()
+            imbalance_ratio = majority_class / minority_class
+            
+            target_analysis['class_balance'] = {
+                'minority_class_count': minority_class,
+                'majority_class_count': majority_class,
+                'imbalance_ratio': imbalance_ratio,
+                'is_imbalanced': imbalance_ratio > 1.5
+            }
+        
+        missing_target = self.df[target_col].isnull().sum()         # missing values in target column
+        target_analysis['missing_values'] = {
+            'count': missing_target,
+            'percentage': (missing_target / len(self.df)) * 100
+        }
+
+        self.data_quality_report['target_analysis'] = target_analysis
+        self.logger.info("Target variable analysis completed")
+        return target_analysis
+        
