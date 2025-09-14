@@ -211,4 +211,61 @@ class DataExplorer:                     # comprehensive data exploration class
         self.data_quality_report['target_analysis'] = target_analysis
         self.logger.info("Target variable analysis completed")
         return target_analysis
+
+    
+    def correlation_analysis(self) -> Dict[str, Any]:   # perform correlation analysis for numeric features
+
+        self.logger.info("Starting correlation analysis...")
+
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
+
+        if len(numeric_cols) < 2:
+            self.logger.warning("Insufficient numeric columns for correlation analysis")
+            return {}
+
+        corr_matrix = self.df[numeric_cols].corr()          # calculate correlation matrix  
         
+        high_corr_pairs = []                                # identify highly correlated pairs
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i+1, len(corr_matrix.columns)):
+                corr_val = corr_matrix.iloc[i, j]
+                if abs(corr_val) > 0.7:  # Threshold for high correlation
+                    high_corr_pairs.append({
+                        'feature1': corr_matrix.columns[i],
+                        'feature2': corr_matrix.columns[j],
+                        'correlation': corr_val
+                    })
+        
+        correlation_analysis = {
+            'correlation_matrix': corr_matrix.to_dict(),
+            'high_correlations': high_corr_pairs,
+            'max_correlation': corr_matrix.abs().max().max(),
+            'mean_correlation': corr_matrix.abs().mean().mean()
+        }
+
+        self.data_quality_report['correlation_analysis'] = correlation_analysis
+        self.logger.info("Correlation analysis completed")
+        return correlation_analysis
+    
+    def categorical_feature_analysis(self) -> Dict[str, Any]:     # analyze categorical analysis results
+
+        self.logger.info("Starting categorical analysis...") 
+
+        categorical_cols = self.df.select_dtypes(include=['object']).columns.tolist()
+        categorical_analysis = {}
+
+        for col in categorical_cols:
+            value_counts = self.df[col].value_counts()
+
+            categorical_analysis[col] = {
+                'unique_values': self.df[col].nunique(),
+                'most_frequent': value_counts.index[0] if len(value_counts) > 0 else None,
+                'most_frequent_count': value_counts.iloc[0] if len(value_counts) > 0 else 0,
+                'most_frequent_percentage': (value_counts.iloc[0] / len(self.df)) * 100 if len(value_counts) > 0 else 0,
+                'value_distribution': value_counts.head(10).to_dict(),
+                'is_high_cardinality': self.df[col].nunique() > 20
+            }
+
+        self.data_quality_report['categorical_analysis'] = categorical_analysis
+        self.logger.info("Categorical analysis completed")
+        return categorical_analysis
