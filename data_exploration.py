@@ -269,3 +269,220 @@ class DataExplorer:                     # comprehensive data exploration class
         self.data_quality_report['categorical_analysis'] = categorical_analysis
         self.logger.info("Categorical analysis completed")
         return categorical_analysis
+
+    def business_insights_generation(self, target_col: str = 'Churn') -> Dict[str, Any]:        # generate business insights from the data
+        
+        self.logger.info("Generating business insights ...")
+
+        insights = {}
+
+        if target_col in self.df.columns:
+            categorical_cols = self.df.select_dtypes(include=['object']).columns.tolist()
+            
+            if target_col in categorical_cols:
+                categorical_cols.remove(target_col)
+
+            churn_by_segment = {}
+            
+            for col in categorical_cols[:5]:        # Limit to top 5 categorical columns
+                if self.df[col].nunique() <= 10:    # Only for low cardinality columns
+                    churn_rate = self.df.groupby(col)[target_col].apply(
+                        lambda x: (x == 'Yes').mean() * 100 if 'Yes' in x.values else 0
+                    )
+                    churn_by_segment[col] = churn_rate.to_dict()
+            
+            insights['churn_by_segment'] = churn_by_segment
+
+
+            if 'MonthlyCharges' in self.df.columns:         # Revenue impact analysis (if applicable)
+                avg_monthly_charges = self.df.groupby(target_col)['MonthlyCharges'].mean()
+                insights['revenue_impact'] = {
+                    'avg_monthly_charges_by_churn': avg_monthly_charges.to_dict(),
+                    'total_monthly_revenue_at_risk': (
+                        self.df[self.df[target_col] == 'Yes']['MonthlyCharges'].sum()
+                        if 'Yes' in self.df[target_col].values else 0
+                    )
+                }
+
+            if 'tenure' in self.df.columns:             # Tenure analysis
+                tenure_churn = self.df.groupby(pd.cut(self.df['tenure'], bins=5))[target_col].apply(
+                    lambda x: (x == 'Yes').mean() * 100 if 'Yes' in x.values else 0
+                )
+                insights['tenure_analysis'] = {
+                    'churn_by_tenure_bins': tenure_churn.to_dict()
+                }
+
+        insights['data_completeness'] = {
+            'overall_completeness': ((self.df.notna().sum().sum()) / (len(self.df) * len(self.df.columns))) * 100,
+            'columns_with_missing_data': len([col for col in self.df.columns if self.df[col].isnull().sum() > 0]),
+            'records_with_missing_data': len(self.df[self.df.isnull().any(axis=1)])
+        }
+
+        self.business_insights = insights
+        self.logger.info("Business insights generation completed")
+        return insights
+    
+    def create_visualizations(self):            # create comprehensive visualizations for the dataset
+
+        self.logger.info("Creating visualizations...")
+        
+        plt.rcParams['figure.figsize'] = (12, 8)        # plotting style (runtime configuration)
+
+        if 'Churn' in self.df.columns:                  # plot-1: Target variable distribution
+            plt.figure(figsize=(10, 6))
+            churn_counts = self.df['Churn'].value_counts()
+            colors = ['#2E86AB', '#A23B72']
+            
+            plt.subplot(1, 2, 1)
+            churn_counts.plot(kind='bar', color=colors)
+            plt.title('Churn Distribution (Count)', fontsize=14, fontweight='bold')
+            plt.xlabel('Churn Status')
+            plt.ylabel('Count')
+            plt.xticks(rotation=0)
+            
+            plt.subplot(1, 2, 2)
+            churn_pct = self.df['Churn'].value_counts(normalize=True) * 100
+            plt.pie(churn_pct.values, labels=churn_pct.index, autopct='%1.1f%%', 
+                   colors=colors, startangle=90)
+            plt.title('Churn Distribution (Percentage)', fontsize=14, fontweight='bold')
+            
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/figures/churn_distribution.png', 
+                       dpi=300, bbox_inches='tight')
+            plt.close()
+
+
+        if self.df.isnull().sum().sum() > 0:            # plot-2: Missing values heatmap
+            plt.figure(figsize=(12, 8))
+            missing_data = self.df.isnull()
+            
+            if missing_data.sum().sum() > 0:
+                sns.heatmap(missing_data, cbar=True, yticklabels=False, 
+                           cmap='viridis', xticklabels=True)
+                plt.title('Missing Values Heatmap', fontsize=16, fontweight='bold')
+                plt.xticks(rotation=45)
+                plt.tight_layout()
+                plt.savefig(f'{self.output_dir}/figures/missing_values_heatmap.png', 
+                           dpi=300, bbox_inches='tight')
+                plt.close()
+
+        
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()   # plot-3: Correlation matrix for numeric features  
+        if len(numeric_cols) > 1:
+            plt.figure(figsize=(10, 8))
+            correlation_matrix = self.df[numeric_cols].corr()
+            
+            mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+            sns.heatmap(correlation_matrix, mask=mask, annot=True, cmap='RdBu_r',
+                       center=0, square=True, fmt='.2f', cbar_kws={"shrink": .8})
+            plt.title('Correlation Matrix (Numeric Variables)', fontsize=16, fontweight='bold')
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/figures/correlation_matrix.png', 
+                       dpi=300, bbox_inches='tight')
+            plt.close()
+
+        
+        numeric_cols = [col for col in numeric_cols if col != 'customerID']     # plot-4: Distribution of numeric features
+        if numeric_cols:
+            fig, axes = plt.subplots(nrows=(len(numeric_cols)+2)//3, ncols=3, 
+                                   figsize=(15, 5*((len(numeric_cols)+2)//3)))
+            axes = axes.ravel() if len(numeric_cols) > 1 else [axes]
+            
+            for idx, col in enumerate(numeric_cols):
+                if idx < len(axes):
+                    self.df[col].hist(bins=30, ax=axes[idx], alpha=0.7, color='skyblue')
+                    axes[idx].set_title(f'Distribution of {col}', fontweight='bold')
+                    axes[idx].set_xlabel(col)
+                    axes[idx].set_ylabel('Frequency')
+            
+            for idx in range(len(numeric_cols), len(axes)):
+                axes[idx].set_visible(False)
+                
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/figures/numeric_distributions.png', 
+                       dpi=300, bbox_inches='tight')
+            plt.close()
+
+        
+        categorical_cols = self.df.select_dtypes(include=['object']).columns.tolist()       # plot-5: Distribution of categorical features
+        if 'Churn' in categorical_cols:
+            categorical_cols.remove('Churn')
+        
+        cat_cols_viz = categorical_cols[:6]         # Limit to first 6 categorical columns for visualization
+        
+        if cat_cols_viz:
+            fig, axes = plt.subplots(nrows=(len(cat_cols_viz)+2)//3, ncols=3, 
+                                   figsize=(15, 5*((len(cat_cols_viz)+2)//3)))
+            axes = axes.ravel() if len(cat_cols_viz) > 1 else [axes]
+            
+            for idx, col in enumerate(cat_cols_viz):
+                if idx < len(axes) and self.df[col].nunique() <= 10:
+                    value_counts = self.df[col].value_counts()
+                    axes[idx].bar(range(len(value_counts)), value_counts.values, 
+                                color='lightcoral', alpha=0.7)
+                    axes[idx].set_title(f'Distribution of {col}', fontweight='bold')
+                    axes[idx].set_xlabel(col)
+                    axes[idx].set_ylabel('Count')
+                    axes[idx].set_xticks(range(len(value_counts)))
+                    axes[idx].set_xticklabels(value_counts.index, rotation=45)
+            
+            for idx in range(len(cat_cols_viz), len(axes)):         # Hide empty subplots
+                axes[idx].set_visible(False)
+                
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/figures/categorical_distributions.png', 
+                       dpi=300, bbox_inches='tight')
+            plt.close()
+
+
+        if 'Churn' in self.df.columns:
+            categorical_analysis_cols = [col for col in categorical_cols if self.df[col].nunique() <= 8]            # plot-6: churn by categories
+            
+            if categorical_analysis_cols:
+                fig, axes = plt.subplots(nrows=(len(categorical_analysis_cols)+2)//3, ncols=3,
+                                       figsize=(15, 5*((len(categorical_analysis_cols)+2)//3)))
+                axes = axes.ravel() if len(categorical_analysis_cols) > 1 else [axes]
+                
+                for idx, col in enumerate(categorical_analysis_cols):
+                    if idx < len(axes):
+                        churn_rate = self.df.groupby(col)['Churn'].apply(
+                            lambda x: (x == 'Yes').mean() * 100
+                        )
+                        
+                        axes[idx].bar(range(len(churn_rate)), churn_rate.values, 
+                                    color='orange', alpha=0.7)
+                        axes[idx].set_title(f'Churn Rate by {col}', fontweight='bold')
+                        axes[idx].set_xlabel(col)
+                        axes[idx].set_ylabel('Churn Rate (%)')
+                        axes[idx].set_xticks(range(len(churn_rate)))
+                        axes[idx].set_xticklabels(churn_rate.index, rotation=45)
+                
+                for idx in range(len(categorical_analysis_cols), len(axes)):
+                    axes[idx].set_visible(False)
+                    
+                plt.tight_layout()
+                plt.savefig(f'{self.output_dir}/figures/churn_rate_by_categories.png', 
+                           dpi=300, bbox_inches='tight')
+                plt.close()
+
+
+        if 'Churn' in self.df.columns and numeric_cols:         # plot-7: Numeric features by churn status
+            fig, axes = plt.subplots(nrows=(len(numeric_cols)+2)//3, ncols=3,
+                                   figsize=(15, 5*((len(numeric_cols)+2)//3)))
+            axes = axes.ravel() if len(numeric_cols) > 1 else [axes]
+            
+            for idx, col in enumerate(numeric_cols):
+                if idx < len(axes):
+                    sns.boxplot(data=self.df, x='Churn', y=col, ax=axes[idx])
+                    axes[idx].set_title(f'{col} by Churn Status', fontweight='bold')
+            
+            for idx in range(len(numeric_cols), len(axes)):
+                axes[idx].set_visible(False)
+                
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/figures/numeric_by_churn_boxplots.png', 
+                       dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        self.logger.info("Visualizations created successfully")
+
