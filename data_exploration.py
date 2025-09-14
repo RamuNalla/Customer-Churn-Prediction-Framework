@@ -486,3 +486,227 @@ class DataExplorer:                     # comprehensive data exploration class
         
         self.logger.info("Visualizations created successfully")
 
+
+    def generate_summary_report(self) -> str:       # generate a comprehensive summary report in HTML format
+        
+        self.logger.info("Generating summary report...")
+        
+        report_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title> Advanced Churn Prediction: Data Exploration Report</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }}
+                .container {{ background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+                h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+                h2 {{ color: #34495e; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }}
+                h3 {{ color: #2c3e50; }}
+                .metric {{ background-color: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 5px; }}
+                .warning {{ background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin: 10px 0; }}
+                .success {{ background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; margin: 10px 0; }}
+                table {{ border-collapse: collapse; width: 100%; margin: 15px 0; }}
+                th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
+                th {{ background-color: #3498db; color: white; }}
+                tr:nth-child(even) {{ background-color: #f2f2f2; }}
+                .highlight {{ background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Advanced Churn Prediction: Data Exploration Report</h1>
+                <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p><strong>Dataset:</strong> {self.data_path}</p>
+                
+                <h2>1. Executive Summary</h2>
+                <div class="highlight">
+                    <h3>Key Findings:</h3>
+                    <ul>
+                        <li><strong>Dataset Size:</strong> {self.data_quality_report.get('shape', ['N/A', 'N/A'])[0]:,} customers with {self.data_quality_report.get('shape', ['N/A', 'N/A'])[1]} features</li>
+                        <li><strong>Data Completeness:</strong> {self.business_insights.get('data_completeness', {}).get('overall_completeness', 'N/A'):.1f}% complete</li>
+                        <li><strong>Target Distribution:</strong> {self._get_churn_summary()}</li>
+                        <li><strong>Data Quality Issues:</strong> {len(self.data_quality_report.get('potential_issues', []))} potential issues identified</li>
+                    </ul>
+                </div>
+                
+                <h2>2. Dataset Overview</h2>
+                <div class="metric">
+                    <h3>Basic Statistics</h3>
+                    <ul>
+                        <li>Total Records: {self.data_quality_report.get('basic_stats', {}).get('total_records', 'N/A'):,}</li>
+                        <li>Total Features: {self.data_quality_report.get('basic_stats', {}).get('total_features', 'N/A')}</li>
+                        <li>Memory Usage: {self.data_quality_report.get('basic_stats', {}).get('memory_usage_mb', 0):.2f} MB</li>
+                        <li>Numeric Columns: {self.data_quality_report.get('data_types', {}).get('numeric_count', 'N/A')}</li>
+                        <li>Categorical Columns: {self.data_quality_report.get('data_types', {}).get('categorical_count', 'N/A')}</li>
+                    </ul>
+                </div>
+                
+                <h2>3. Data Quality Assessment</h2>
+                {self._generate_data_quality_section()}
+                
+                <h2>4. Target Variable Analysis</h2>
+                {self._generate_target_analysis_section()}
+                
+                <h2>5. Business Insights</h2>
+                {self._generate_business_insights_section()}
+                
+                <h2>6. Recommendations</h2>
+                {self._generate_recommendations_section()}
+                
+                <h2>7. Next Steps</h2>
+                <div class="metric">
+                    <h3>Phase 2 Preparation:</h3>
+                    <ul>
+                        <li>Address data quality issues identified</li>
+                        <li>Design feature engineering strategy</li>
+                        <li>Plan handling of class imbalance</li>
+                        <li>Prepare data preprocessing pipeline</li>
+                        <li>Design validation strategy based on data characteristics</li>
+                    </ul>
+                </div>
+                
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Save report
+        report_path = f"{self.output_dir}/data_analysis_report.html"
+        with open(report_path, 'w') as f:
+            f.write(report_html)
+        
+        self.logger.info(f"Summary report saved to {report_path}")
+        return report_html
+    
+
+    def _get_churn_summary(self) -> str:        # helper function to summarize churn distribution
+
+        if 'target_analysis' in self.data_quality_report:
+            distribution = self.data_quality_report['target_analysis'].get('distribution', {})
+            if distribution.get('percentages'):
+                return f"{list(distribution['percentages'].values())[0]:.1f}% / {list(distribution['percentages'].values())[1]:.1f}%"
+        return "Not analyzed"
+    
+    def _generate_data_quality_section(self) -> str:       # helper function to generate data quality section in HTML report
+
+        missing = self.data_quality_report.get('missing_values', {})
+        duplicates = self.data_quality_report.get('duplicates', {})
+        issues = self.data_quality_report.get('potential_issues', [])
+
+        section = f"""
+        <div class="metric">
+            <h3>Missing Values</h3>
+            <ul>
+                <li>Total Missing Cells: {missing.get('total_missing_cells', 'N/A'):,}</li>
+                <li>Percentage Missing: {missing.get('percentage_missing_cells', 0):.2f}%</li>
+                <li>Columns with Missing Data: {len(missing.get('columns_with_missing', {}))}</li>
+            </ul>
+        </div>
+        
+        <div class="metric">
+            <h3>Duplicate Records</h3>
+            <ul>
+                <li>Duplicate Count: {duplicates.get('duplicate_count', 'N/A')}</li>
+                <li>Duplicate Percentage: {duplicates.get('duplicate_percentage', 0):.2f}%</li>
+            </ul>
+        </div>
+        """
+
+        if issues:
+            section += f"""
+            <div class="warning">
+                <h3>Potential Data Quality Issues</h3>
+                <ul>
+                    {''.join([f"<li>{issue}</li>" for issue in issues])}
+                </ul>
+            </div>
+            """
+        
+        return section
+    
+    def _generate_target_analysis_section(self) -> str:      # helper function to generate target analysis section in HTML report
+        
+        target = self.data_quality_report.get('target_analysis', {})
+        distribution = target.get('distribution', {})
+        balance = target.get('class_balance', {})
+
+        section = f"""
+        <div class="metric">
+            <h3>Target Distribution</h3>
+            <table>
+                <tr><th>Class</th><th>Count</th><th>Percentage</th></tr>
+        """
+
+        if distribution.get('value_counts') and distribution.get('percentages'):
+            for class_name, count in distribution['value_counts'].items():
+                percentage = distribution['percentages'][class_name]
+                section += f"<tr><td>{class_name}</td><td>{count:,}</td><td>{percentage:.1f}%</td></tr>"
+        
+        section += "</table></div>"
+        
+        if balance.get('is_imbalanced'):
+            section += f"""
+            <div class="warning">
+                <h3>Class Imbalance Detected</h3>
+                <ul>
+                    <li>Imbalance Ratio: {balance.get('imbalance_ratio', 'N/A'):.2f}</li>
+                    <li>Recommendation: Consider using sampling techniques or class-weight balancing</li>
+                </ul>
+            </div>
+            """
+        
+        return section
+    
+    def _generate_business_insights_section(self) -> str:        # helper function to generate business insights section in HTML report
+
+        insights = self.business_insights
+        
+        section = "<div class='metric'><h3>Customer Segments Analysis</h3>"
+        
+        if 'churn_by_segment' in insights:
+            for segment, rates in insights['churn_by_segment'].items():
+                section += f"<h4>{segment.title()} Segments:</h4><ul>"
+                for category, rate in rates.items():
+                    section += f"<li>{category}: {rate:.1f}% churn rate</li>"
+                section += "</ul>"
+        
+        if 'revenue_impact' in insights:
+            revenue = insights['revenue_impact']
+            section += f"""
+            <h4>Revenue Impact:</h4>
+            <ul>
+                <li>Monthly Revenue at Risk: ${revenue.get('total_monthly_revenue_at_risk', 0):,.2f}</li>
+            </ul>
+            """
+        
+        section += "</div>"
+        return section
+    
+    def _generate_recommendations_section(self) -> str:        # helper function to generate recommendations section in HTML report
+
+        recommendations = []
+        
+        missing = self.data_quality_report.get('missing_values', {})        # Data quality recommendations
+        if missing.get('percentage_missing_cells', 0) > 5:
+            recommendations.append("Address missing values - consider imputation strategies")
+        
+        target = self.data_quality_report.get('target_analysis', {})        # Class imbalance recommendations
+        if target.get('class_balance', {}).get('is_imbalanced'):
+            recommendations.append("Handle class imbalance using SMOTE, class weights, or ensemble methods")
+        
+        correlation = self.data_quality_report.get('correlation_analysis', {})   # Correlation recommendations
+        if correlation.get('high_correlations'):
+            recommendations.append("Address multicollinearity - consider feature selection or regularization")
+                
+        section = "<div class='metric'><h3>Key Recommendations:</h3><ul>"
+        for rec in recommendations:
+            section += f"<li>{rec}</li>"
+        section += "</ul></div>"
+        
+        return section
+
+
+
+
+
+
