@@ -706,7 +706,83 @@ class DataExplorer:                     # comprehensive data exploration class
         return section
 
 
+    def save_analysis_results(self):            # save analysis results to JSON file
+
+        results = {
+            'data_quality_report': self.data_quality_report,
+            'business_insights': self.business_insights,
+            'analysis_timestamp': datetime.now().isoformat(),
+            'data_path': self.data_path
+        }
+
+        results_path = f"{self.output_dir}/data_analysis_results.json"
+        with open(results_path, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        
+        self.logger.info(f"Analysis results saved to {results_path}")   
 
 
+    def run_complete_analysis(self, target_col: str = 'Churn'):     # Run complete Data Exploration workflow
+
+        try:
+            self.load_data()
+
+            self.data_quality_assessment()
+            self.outlier_detection()
+            self.target_variable_analysis(target_col=target_col)
+            self.correlation_analysis() 
+            self.categorical_feature_analysis()
+            self.business_insights_generation(target_col=target_col)
+            self.create_visualizations()
+
+            self.generate_summary_report()
+            self.save_analysis_results()
+
+            self.logger.info("Data exploration completed successfully")
+
+            self._print_analysis_summary()
+        except Exception as e:
+            self.logger.error(f"Error during data exploration: {e}")
+            raise 
+    
+    def _print_analysis_summary(self):        # print a analysis summary to the console
+
+        print("\n" + "-"*80)
+        print("DATA EXPLORATION ANALYSIS SUMMARY")
+        print("-"*80)
+
+        shape = self.data_quality_report.get('shape', ['N/A', 'N/A'])
+        print(f"Dataset Shape: {shape[0]:,} rows x {shape[1]:,} columns")
+
+        missing = self.data_quality_report.get('missing_values', {})
+        print(f"Data Completeness: {100 - missing.get('percentage_missing_cells', 0):.1f}%")
+
+        if 'target_analysis' in self.data_quality_report:
+            target = self.data_quality_report['target_analysis']
+            if target.get('distribution', {}).get('percentages'):
+                churn_pct = list(target['distribution']['percentages'].values())
+                print(f"Churn Rate: {churn_pct[1] if len(churn_pct) > 1 else 'N/A'}%")
+
+        issues = len(self.data_quality_report.get('potential_issues', []))
+        print(f"Data Quality Issues: {issues}")
+        
+        print(f"\nReports generated in: {self.output_dir}")
+        print("- phase1_data_analysis_report.html")
+        print("- phase1_analysis_results.json")
+        print("- figures/ directory with visualizations")
+        
+        print("\n" + "-"*80)
 
 
+def main():             # Main execution function
+
+    DATA_PATH = 'data/Telco-Customer-data.csv'      # path to dataset
+    OUTPUT_DIR = 'reports/'                         # path to save outputs
+    TARGET_COLUMN = "Churn" 
+
+    analyzer = DataExplorer(data_path=DATA_PATH, output_dir=OUTPUT_DIR)  # Initialize DataExplorer
+
+    analyzer.run_complete_analysis(target_col=TARGET_COLUMN)            # Run complete analysis workflow
+
+if __name__ == "__main__":
+    main()
