@@ -1,0 +1,120 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title> Advanced Churn Prediction: Data Exploration Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+                .container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+                h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+                h2 { color: #34495e; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }
+                h3 { color: #2c3e50; }
+                .metric { background-color: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 5px; }
+                .warning { background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin: 10px 0; }
+                .success { background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; margin: 10px 0; }
+                table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                th { background-color: #3498db; color: white; }
+                tr:nth-child(even) { background-color: #f2f2f2; }
+                .highlight { background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Advanced Churn Prediction: Data Exploration Report</h1>
+                <p><strong>Generated:</strong> 2025-09-18 21:40:56</p>
+                <p><strong>Dataset:</strong> data/raw/Telco-Customer-data.csv</p>
+                
+                <h2>1. Executive Summary</h2>
+                <div class="highlight">
+                    <h3>Key Findings:</h3>
+                    <ul>
+                        <li><strong>Dataset Size:</strong> 7,043 customers with 21 features</li>
+                        <li><strong>Data Completeness:</strong> 100.0% complete</li>
+                        <li><strong>Target Distribution:</strong> 73.5% / 26.5%</li>
+                        <li><strong>Data Quality Issues:</strong> 1 potential issues identified</li>
+                    </ul>
+                </div>
+                
+                <h2>2. Dataset Overview</h2>
+                <div class="metric">
+                    <h3>Basic Statistics</h3>
+                    <ul>
+                        <li>Total Records: 7,043</li>
+                        <li>Total Features: 21</li>
+                        <li>Memory Usage: 6.82 MB</li>
+                        <li>Numeric Columns: 3</li>
+                        <li>Categorical Columns: 18</li>
+                    </ul>
+                </div>
+                
+                <h2>3. Data Quality Assessment</h2>
+                
+        <div class="metric">
+            <h3>Missing Values</h3>
+            <ul>
+                <li>Total Missing Cells: 0</li>
+                <li>Percentage Missing: 0.00%</li>
+                <li>Columns with Missing Data: 0</li>
+            </ul>
+        </div>
+        
+        <div class="metric">
+            <h3>Duplicate Records</h3>
+            <ul>
+                <li>Duplicate Count: 0</li>
+                <li>Duplicate Percentage: 0.00%</li>
+            </ul>
+        </div>
+        
+            <div class="warning">
+                <h3>Potential Data Quality Issues</h3>
+                <ul>
+                    <li>High cardinality categorical columns: ['customerID', 'TotalCharges']</li>
+                </ul>
+            </div>
+            
+                
+                <h2>4. Target Variable Analysis</h2>
+                
+        <div class="metric">
+            <h3>Target Distribution</h3>
+            <table>
+                <tr><th>Class</th><th>Count</th><th>Percentage</th></tr>
+        <tr><td>No</td><td>5,174</td><td>73.5%</td></tr><tr><td>Yes</td><td>1,869</td><td>26.5%</td></tr></table></div>
+            <div class="warning">
+                <h3>Class Imbalance Detected</h3>
+                <ul>
+                    <li>Imbalance Ratio: 2.77</li>
+                    <li>Recommendation: Consider using sampling techniques or class-weight balancing</li>
+                </ul>
+            </div>
+            
+                
+                <h2>5. Business Insights</h2>
+                <div class='metric'><h3>Customer Segments Analysis</h3><h4>Gender Segments:</h4><ul><li>Female: 26.9% churn rate</li><li>Male: 26.2% churn rate</li></ul><h4>Partner Segments:</h4><ul><li>No: 33.0% churn rate</li><li>Yes: 19.7% churn rate</li></ul><h4>Dependents Segments:</h4><ul><li>No: 31.3% churn rate</li><li>Yes: 15.5% churn rate</li></ul><h4>Phoneservice Segments:</h4><ul><li>No: 24.9% churn rate</li><li>Yes: 26.7% churn rate</li></ul>
+            <h4>Revenue Impact:</h4>
+            <ul>
+                <li>Monthly Revenue at Risk: $139,130.85</li>
+            </ul>
+            </div>
+                
+                <h2>6. Recommendations</h2>
+                <div class='metric'><h3>Key Recommendations:</h3><ul><li>Handle class imbalance using SMOTE, class weights, or ensemble methods</li></ul></div>
+                
+                <h2>7. Next Steps</h2>
+                <div class="metric">
+                    <h3>Phase 2 Preparation:</h3>
+                    <ul>
+                        <li>Address data quality issues identified</li>
+                        <li>Design feature engineering strategy</li>
+                        <li>Plan handling of class imbalance</li>
+                        <li>Prepare data preprocessing pipeline</li>
+                        <li>Design validation strategy based on data characteristics</li>
+                    </ul>
+                </div>
+                
+            </div>
+        </body>
+        </html>
+        

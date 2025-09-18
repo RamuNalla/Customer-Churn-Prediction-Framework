@@ -24,7 +24,7 @@ class DataExplorer:                     # comprehensive data exploration class
         self.data_path = data_path
         self.output_dir = output_dir    
         self.df = None
-        self.data_qualitty_report = {}
+        self.data_quality_report = {}
         self.business_insights = {}
 
         os.makedirs(self.output_dir, exist_ok=True)
@@ -704,13 +704,27 @@ class DataExplorer:                     # comprehensive data exploration class
         section += "</ul></div>"
         
         return section
-
-
+    
+    def _stringify_keys(self, obj):
+        if isinstance(obj, dict):
+            return {str(k): self._stringify_keys(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._stringify_keys(item) for item in obj]
+        else:
+            return obj
+    
     def save_analysis_results(self):            # save analysis results to JSON file
 
+        # results = {
+        #     'data_quality_report': self.data_quality_report,
+        #     'business_insights': self.business_insights,
+        #     'analysis_timestamp': datetime.now().isoformat(),
+        #     'data_path': self.data_path
+        # }
+
         results = {
-            'data_quality_report': self.data_quality_report,
-            'business_insights': self.business_insights,
+            'data_quality_report': self._stringify_keys(self.data_quality_report),
+            'business_insights': self._stringify_keys(self.business_insights),
             'analysis_timestamp': datetime.now().isoformat(),
             'data_path': self.data_path
         }
@@ -767,17 +781,17 @@ class DataExplorer:                     # comprehensive data exploration class
         print(f"Data Quality Issues: {issues}")
         
         print(f"\nReports generated in: {self.output_dir}")
-        print("- phase1_data_analysis_report.html")
-        print("- phase1_analysis_results.json")
-        print("- figures/ directory with visualizations")
+        print("- data_analysis_report.html")
+        print("- data_analysis_results.json")
+        print("- figures")
         
         print("\n" + "-"*80)
 
 
 def main():             # Main execution function
 
-    DATA_PATH = 'data/Telco-Customer-data.csv'      # path to dataset
-    OUTPUT_DIR = 'reports/'                         # path to save outputs
+    DATA_PATH = 'data/raw/Telco-Customer-data.csv'      # path to dataset
+    OUTPUT_DIR = 'reports/'                             # path to save outputs
     TARGET_COLUMN = "Churn" 
 
     analyzer = DataExplorer(data_path=DATA_PATH, output_dir=OUTPUT_DIR)  # Initialize DataExplorer
