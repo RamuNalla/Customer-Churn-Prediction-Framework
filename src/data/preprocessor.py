@@ -83,6 +83,55 @@ class DataPreprocessor:         # data proprocessing utilities
             df_processed = pd.get_dummies(df_processed, columns=categorical_cols, drop_first=True)
 
 
+    def scale_features(self, df: pd.DataFrame, target_col: str = None) -> pd.DataFrame:     # scale numerical features
+
+        scaling_method = self.data_config['preprocessing']['scaling_method']
+        self.logger.info(f"Scaling features using {scaling_method}...")
+
+        df_processed = df.copy()
+        numeric_cols = df_processed.select_dtypes(include=[np.number]).columns.tolist()
+
+        if target_col and target_col in numeric_cols:
+            numeric_cols.remove(target_col)
+
+        if scaling_method == 'standard':
+            scaler = StandardScaler()
+        elif scaling_method == 'minmax':
+            scaler = MinMaxScaler()
+        elif scaling_method == 'robust':
+            scaler = RobustScaler()
+        else:
+            self.logger.warning(f"Unknown scaling method: {scaling_method}")
+            return df_processed    
+
+        df_processed[numeric_cols] = scaler.fit_transform(df_processed[numeric_cols])
+        self.scalers['feature_scaler'] = scaler
+
+        self.logger.info("Feature scaling completed")
+        return df_processed
+    
+
+    def preprocess_pipeline(self, df: pd.DataFrame, target_col: str = None) -> pd.DataFrame:        # complete preprocessing pipeline
+
+        self.logger.info("Starting preprocessing pipeline...")
+
+        if target_col is None:
+            target_col = self.data_config['target_column']
+
+        df = self.handle_missing_values(df)             # Step 1: Handle missing values
+
+        df = self.handle_outliers(df)                   # Step 2: Handle outliers
+
+        df = self.encode_categorical_variables(df, target_col)      # Step 3: Encode categorical variables 
+
+        df = self.scale_features(df, target_col)        # Step 4: Scale features
+
+        self.logger.info("Preprocessing pipeline completed")
+        return df
+
+
+
+
 
 
 
