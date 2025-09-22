@@ -73,7 +73,7 @@ class FeatureEngineer:                      # Feature engineering utilities for 
         return df_features
     
 
-    def create_binner_features(self, df: pd.DataFrame) -> pd.DataFrame:            # Create binned/discretized features
+    def create_binned_features(self, df: pd.DataFrame) -> pd.DataFrame:            # Create binned/discretized features
 
         self.logger.info("Creating binned features...")
         
@@ -99,11 +99,27 @@ class FeatureEngineer:                      # Feature engineering utilities for 
     def select_features(self, X: pd.DataFrame, y: pd.Series, method: str = 'rfe', n_features: int = 50) -> pd.DataFrame:        # feature selection
 
         self.logger.info(f"Selecting features using {method}...")
-
-        if method == 'rfe':
+        
+        if method == 'rfe':                         # Recursive feature elimination using Random forest model (while eliminatibg least important feature)
             from sklearn.ensemble import RandomForestClassifier
             estimator = RandomForestClassifier(n_estimators=100, random_state=42)
             selector = RFE(estimator, n_features_to_select=n_features)
+            
+        elif method == 'chi2':                      # calculates a statistical relationshio between each feature and categorical 
+            selector = SelectKBest(chi2, k=n_features)
+            
+        elif method == 'mutual_info':
+            selector = SelectKBest(mutual_info_classif, k=n_features)
+            
+        else:
+            self.logger.warning(f"Unknown selection method: {method}")
+            return X
+            
+        X_selected = selector.fit_transform(X, y)
+        selected_features = X.columns[selector.get_support()]
+        
+        self.logger.info(f"Selected {len(selected_features)} features")
+        return pd.DataFrame(X_selected, columns=selected_features, index=X.index)
 
 
 
