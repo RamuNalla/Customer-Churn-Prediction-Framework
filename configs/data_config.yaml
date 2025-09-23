@@ -1,0 +1,91 @@
+# TeleRetain Data Configuration
+
+# Data paths
+data_paths:
+  raw_data: "data/raw/Telco-Customer-data.csv"
+  processed_data: "data/processed/"
+  features_data: "data/features/"
+  external_data: "data/external/"
+
+# Target variable
+target_column: "Churn"
+positive_class: "Yes"
+
+# Data validation
+validation:
+  min_rows: 1000
+  max_missing_percentage: 30
+  required_columns: ["customerID"]
+  date_columns: []
+  
+# Preprocessing pipeline
+preprocessing:
+  # Missing value handling
+  missing_value_strategy:
+    numeric: "median"  # mean, median, mode, drop, interpolate
+    categorical: "mode"  # mode, drop, unknown
+  
+  # Outlier handling  
+  outlier_detection:
+    method: "iqr"  # iqr, zscore, isolation_forest
+    iqr_multiplier: 1.5
+    zscore_threshold: 3
+    
+  # Encoding strategies
+  encoding:
+    categorical_method: "onehot"  # onehot, label, target, binary
+    handle_unknown: "ignore"
+    drop_first: true
+    
+  # Scaling
+  scaling:
+    method: "standard"  # standard, minmax, robust, quantile
+    
+# Feature engineering
+feature_engineering:
+  # Basic transformations
+  log_transform: []  # columns to log transform
+  sqrt_transform: []  # columns to sqrt transform
+  
+  # Interaction features
+  interactions:
+    create: true
+    max_degree: 2
+    include_bias: false
+    
+  # Polynomial features
+  polynomial:
+    create: false
+    degree: 2
+    interaction_only: false
+    
+  # Binning/Discretization
+  binning:
+    tenure_bins: [0, 12, 24, 36, 48, 72]
+    monthly_charges_bins: [0, 35, 65, 89, 120]
+    
+  # Custom business features
+  business_features:
+    create_clv: true  # Customer lifetime value
+    create_arpu: true  # Average revenue per user
+    create_service_count: true  # Number of services
+    create_payment_risk: true  # Payment method risk score
+
+# Feature selection
+feature_selection:
+  methods:
+    - "correlation"  # Remove highly correlated features
+    - "variance"     # Remove low variance features
+    - "rfe"         # Recursive feature elimination
+    
+  correlation_threshold: 0.95
+  variance_threshold: 0.01
+  rfe_n_features: 50
+  rfe_step: 1
+
+# Data splitting
+data_splitting:
+  strategy: "stratified"  # random, stratified, time_series
+  test_size: 0.2
+  validation_size: 0.2
+  random_state: 42

@@ -1,0 +1,80 @@
+# Churn Prediction Model Configuration
+random_state: 42
+test_size: 0.2
+validation_size: 0.2
+cv_folds: 5
+
+# Preprocessing parameters
+preprocessing:
+  handle_missing: true
+  missing_strategy: "median"  # mean, median, mode, drop
+  outlier_method: "iqr"  # iqr, zscore, isolation_forest
+  scaling_method: "standard"  # standard, minmax, robust
+  encoding_method: "onehot"  # onehot, label, target
+
+# Feature engineering
+feature_engineering:
+  create_interactions: true
+  polynomial_features: false
+  polynomial_degree: 2
+  feature_selection: true
+  selection_method: "rfe"  # rfe, lasso, chi2, mutual_info
+  max_features: 50
+
+# Model hyperparameters for grid search
+models:
+  logistic_regression:
+    C: [0.001, 0.01, 0.1, 1, 10, 100]
+    penalty: ['l1', 'l2', 'elasticnet']
+    solver: ['liblinear', 'saga']
+    max_iter: [1000]
+    
+  random_forest:
+    n_estimators: [100, 200, 300, 500]
+    max_depth: [5, 10, 15, 20, null]
+    min_samples_split: [2, 5, 10]
+    min_samples_leaf: [1, 2, 4]
+    max_features: ['sqrt', 'log2', null]
+    
+  xgboost:
+    n_estimators: [100, 200, 300, 500]
+    max_depth: [3, 5, 7, 9]
+    learning_rate: [0.01, 0.1, 0.2, 0.3]
+    subsample: [0.8, 0.9, 1.0]
+    colsample_bytree: [0.8, 0.9, 1.0]
+    reg_alpha: [0, 0.1, 0.5, 1]
+    reg_lambda: [0, 0.1, 0.5, 1]
+    
+  lightgbm:
+    n_estimators: [100, 200, 300, 500]
+    max_depth: [3, 5, 7, 9]
+    learning_rate: [0.01, 0.1, 0.2, 0.3]
+    subsample: [0.8, 0.9, 1.0]
+    colsample_bytree: [0.8, 0.9, 1.0]
+    reg_alpha: [0, 0.1, 0.5, 1]
+    reg_lambda: [0, 0.1, 0.5, 1]
+    
+  svm:
+    C: [0.001, 0.01, 0.1, 1, 10, 100]
+    kernel: ['rbf', 'poly', 'sigmoid']
+    gamma: ['scale', 'auto', 0.001, 0.01, 0.1, 1]
+
+# Ensemble methods
+ensemble:
+  voting_type: "soft"  # hard, soft
+  stacking_cv: 5
+  stacking_final_estimator: "logistic_regression"
+
+# Optimization settings
+optimization:
+  hyperparameter_tuning: "optuna"  # grid_search, random_search, optuna
+  n_trials: 100  # for optuna
+  cv_scoring: "roc_auc"
+  n_jobs: -1
+
+# Model evaluation
+evaluation:
+  primary_metric: "roc_auc"
+  secondary_metrics: ["precision", "recall", "f1", "accuracy"]
+  business_metrics: true
+  interpretability: true

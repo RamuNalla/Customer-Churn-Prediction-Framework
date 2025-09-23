@@ -1,0 +1,56 @@
+# Customer Churn Deployment Configuration
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  timeout: 30
+  cors_enabled: true
+  cors_origins: ["*"]
+
+# Model Serving
+model_serving:
+  model_registry_path: "models/trained_models/"
+  default_model: "ensemble_final.pkl"
+  batch_size: 1000
+  prediction_threshold: 0.5
+  model_version: "v1.0"
+  
+# Monitoring and Logging
+monitoring:
+  enable_logging: true
+  log_predictions: true
+  log_level: "INFO"
+  drift_detection: true
+  performance_tracking: true
+  alert_thresholds:
+    accuracy_drop: 0.05
+    prediction_drift: 0.1
+    
+# Database Configuration
+database:
+  host: "${DB_HOST:localhost}"
+  port: "${DB_PORT:5432}"
+  database: "${DB_NAME:teleretain}"
+  username: "${DB_USER:postgres}"
+  password: "${DB_PASSWORD:password}"
+  pool_size: 10
+  max_overflow: 20
+  
+# Security
+security:
+  api_key_required: false
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+  input_validation:
+    enabled: true
+    max_batch_size: 10000
+
+# Model Performance
+performance:
+  cache_enabled: true
+  cache_ttl: 3600  # seconds
+  async_processing: true
+  max_concurrent_requests: 50
