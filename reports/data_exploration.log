@@ -140,3 +140,31 @@
 2025-09-18 21:40:56,119 - INFO - Summary report saved to reports//data_analysis_report.html
 2025-09-18 21:40:56,123 - INFO - Analysis results saved to reports//data_analysis_results.json
 2025-09-18 21:40:56,124 - INFO - Data exploration completed successfully
+2025-09-23 20:50:41,946 - INFO - Loading data from ../data/raw/Telco-Customer-data.csv
+2025-09-23 20:50:42,009 - INFO - Data loaded successfully. Shape: (7043, 21)
+2025-09-23 20:50:42,010 - INFO - Starting data quality assessment...  
+2025-09-23 20:50:42,122 - INFO - Data quality assessment completed
+2025-09-23 20:50:58,740 - INFO - Analyzing target variable: Churn
+2025-09-23 20:50:58,746 - INFO - Target variable analysis completed
+2025-09-23 20:57:28,859 - INFO - Generating business insights ...
+2025-09-23 20:57:28,942 - INFO - Business insights generation completed
+2025-09-23 20:59:37,596 - INFO - Loading data from data/raw/Telco-Customer-data.csv
+2025-09-23 20:59:37,625 - INFO - Data loaded successfully. Shape: (7043, 21)
+2025-09-23 20:59:37,625 - INFO - Starting data quality assessment...  
+2025-09-23 20:59:37,701 - INFO - Data quality assessment completed
+2025-09-23 20:59:37,701 - INFO - Starting outlier detection...
+2025-09-23 20:59:37,713 - INFO - Outlier detection completed
+2025-09-23 20:59:37,714 - INFO - Analyzing target variable: Churn
+2025-09-23 20:59:37,716 - INFO - Target variable analysis completed
+2025-09-23 20:59:37,716 - INFO - Starting correlation analysis...
+2025-09-23 20:59:37,724 - INFO - Correlation analysis completed
+2025-09-23 20:59:37,725 - INFO - Starting categorical analysis...
+2025-09-23 20:59:37,761 - INFO - Categorical analysis completed
+2025-09-23 20:59:37,761 - INFO - Generating business insights ...
+2025-09-23 20:59:37,798 - INFO - Business insights generation completed
+2025-09-23 20:59:37,798 - INFO - Creating visualizations...
+2025-09-23 20:59:46,261 - INFO - Visualizations created successfully
+2025-09-23 20:59:46,261 - INFO - Generating summary report...
+2025-09-23 20:59:46,263 - INFO - Summary report saved to reports//data_analysis_report.html
+2025-09-23 20:59:46,267 - INFO - Analysis results saved to reports//data_analysis_results.json
+2025-09-23 20:59:46,268 - INFO - Data exploration completed successfully
