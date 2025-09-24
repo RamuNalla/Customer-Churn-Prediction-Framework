@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 class Config:               # configuration management class for entire project
 
-    def __init__(self, config_dir: str = "configs/"):
+    def __init__(self, config_dir: str = "../configs"):
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(exist_ok=True)
 
@@ -20,9 +20,10 @@ class Config:               # configuration management class for entire project
     def _load_config(self, filename: str) -> Dict[str, Any]:            # load configuration files from YAML file
 
         config_path = self.config_dir / filename
+        print(config_path)
         
         if config_path.exists():
-            with open(config_path, 'w') as f:
+            with open(config_path, 'r') as f:
                 return yaml.safe_load(f)
         
         else:
