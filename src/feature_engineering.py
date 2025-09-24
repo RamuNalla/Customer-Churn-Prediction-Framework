@@ -27,7 +27,7 @@ plt.style.use('seaborn-v0_8')
 sns.set_palette("husl")
 
 
-class AdvancedfeatureEngineer:          # Advanced feature engineering pipeline
+class AdvancedFeatureEngineer:          # Advanced feature engineering pipeline
     
     def __init__(self, output_dir: str = "data/processed/", 
                  config_path: str = "configs/data_config.yaml"):
@@ -692,3 +692,530 @@ class AdvancedfeatureEngineer:          # Advanced feature engineering pipeline
         return X_selected
 
 
+
+    def create_feature_report(self, df_original: pd.DataFrame, df_processed: pd.DataFrame) -> Dict[str, Any]:       # Generate comprehensive feature engineering report
+        
+        self.logger.info("Generating feature engineering report...")
+        
+        report = {
+            'summary': {
+                'original_features': len(df_original.columns),
+                'final_features': len(df_processed.columns),
+                'features_added': len(df_processed.columns) - len(df_original.columns),
+                'processing_timestamp': datetime.now().isoformat()
+            },
+            'data_quality': self.data_quality_report,
+            'feature_metadata': self.feature_metadata,
+            'feature_distribution': {},
+            'preprocessing_artifacts': list(self.preprocessing_artifacts.keys())
+        }
+        
+        numeric_features = df_processed.select_dtypes(include=[np.number]).columns
+        categorical_features = df_processed.select_dtypes(include=['object', 'category']).columns
+        
+        
+        report['feature_distribution'] = {          # Analyze feature distributions
+            'numeric_features': len(numeric_features),
+            'categorical_features': len(categorical_features),
+            'binary_features': len([col for col in numeric_features 
+                                  if df_processed[col].nunique() == 2])
+        }
+        
+        if len(numeric_features) > 0:
+            try:
+                feature_importance = {}             # Quick feature importance using correlation with synthetic target
+                for col in numeric_features[:20]:   # Limit to top 20 for performance
+    
+                    variance_score = df_processed[col].var()            # Create synthetic importance score based on variance and range
+                    range_score = df_processed[col].max() - df_processed[col].min()
+                    feature_importance[col] = variance_score * range_score
+                
+                sorted_importance = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)        # Sort by importance
+                report['feature_importance_preview'] = dict(sorted_importance[:10])
+                
+            except Exception as e:
+                self.logger.warning(f"Could not generate feature importance preview: {str(e)}")
+        
+        return report
+    
+    def save_processed_data(self, df: pd.DataFrame, filename: str) -> str:          # Save processed data with metadata
+        
+        self.logger.info(f"Saving processed data to {filename}")
+        
+        filepath = self.output_dir / filename
+        df.to_csv(filepath, index=False)
+        
+        # Save metadata
+        metadata = {
+            'filename': filename,
+            'shape': df.shape,
+            'columns': list(df.columns),
+            'dtypes': df.dtypes.to_dict(),
+            'creation_timestamp': datetime.now().isoformat(),
+            'preprocessing_artifacts': list(self.preprocessing_artifacts.keys())
+        }
+        
+        metadata_path = self.output_dir / f"{filename.replace('.csv', '_metadata.json')}"
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2, default=str)
+        
+        return str(filepath)
+    
+    def save_preprocessing_artifacts(self) -> str:                  # Save all preprocessing artifacts for later use
+        artifacts_path = self.output_dir / "preprocessing_artifacts.pkl"
+        joblib.dump(self.preprocessing_artifacts, artifacts_path)
+        self.logger.info(f"Preprocessing artifacts saved to {artifacts_path}")
+        return str(artifacts_path)
+    
+    def create_visualizations(self, df_original: pd.DataFrame, df_processed: pd.DataFrame,      # Create comprehensive visualizations for feature engineering analysis
+                            target_col: str = None):
+        
+        self.logger.info("Creating feature engineering visualizations...")
+        
+        fig_dir = Path("reports/figures")           # Create figures directory
+        fig_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 1. Feature count comparison
+        plt.figure(figsize=(10, 6))
+        categories = ['Original Features', 'Final Features']
+        counts = [len(df_original.columns), len(df_processed.columns)]
+        colors = ['#3498db', '#2ecc71']
+        
+        bars = plt.bar(categories, counts, color=colors, alpha=0.8)
+        plt.title('Feature Engineering: Before vs After', fontsize=16, fontweight='bold')
+        plt.ylabel('Number of Features')
+        
+        # Add value labels on bars
+        for bar, count in zip(bars, counts):
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                    str(count), ha='center', va='bottom', fontsize=12, fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(fig_dir / 'feature_count_comparison.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # 2. Data types distribution
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+        
+        # Original data types
+        original_types = df_original.dtypes.value_counts()
+        ax1.pie(original_types.values, labels=original_types.index, autopct='%1.1f%%', startangle=90)
+        ax1.set_title('Original Data Types Distribution')
+        
+        # Processed data types
+        processed_types = df_processed.dtypes.value_counts()
+        ax2.pie(processed_types.values, labels=processed_types.index, autopct='%1.1f%%', startangle=90)
+        ax2.set_title('Processed Data Types Distribution')
+        
+        plt.tight_layout()
+        plt.savefig(fig_dir / 'data_types_comparison.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # 3. Missing values before and after
+        if df_original.isnull().sum().sum() > 0:
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+            
+            # Original missing values
+            missing_original = df_original.isnull().sum()
+            missing_original = missing_original[missing_original > 0]
+            
+            if len(missing_original) > 0:
+                ax1.bar(range(len(missing_original)), missing_original.values)
+                ax1.set_xticks(range(len(missing_original)))
+                ax1.set_xticklabels(missing_original.index, rotation=45, ha='right')
+                ax1.set_title('Missing Values - Original Data')
+                ax1.set_ylabel('Missing Count')
+            
+            # Processed missing values
+            missing_processed = df_processed.isnull().sum()
+            missing_processed = missing_processed[missing_processed > 0]
+            
+            if len(missing_processed) > 0:
+                ax2.bar(range(len(missing_processed)), missing_processed.values)
+                ax2.set_xticks(range(len(missing_processed)))
+                ax2.set_xticklabels(missing_processed.index, rotation=45, ha='right')
+                ax2.set_title('Missing Values - Processed Data')
+                ax2.set_ylabel('Missing Count')
+            else:
+                ax2.text(0.5, 0.5, 'No Missing Values', transform=ax2.transAxes,
+                        ha='center', va='center', fontsize=16, fontweight='bold')
+                ax2.set_title('Missing Values - Processed Data')
+            
+            plt.tight_layout()
+            plt.savefig(fig_dir / 'missing_values_comparison.png', dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        # 4. Feature importance visualization (if business features were created)
+        if 'business_features' in self.feature_metadata:
+            business_features = self.feature_metadata['business_features']
+            if business_features:
+                plt.figure(figsize=(12, 8))
+                
+                # Calculate simple importance scores for business features
+                importance_scores = {}
+                for feature in business_features:
+                    if feature in df_processed.columns:
+                        # Use variance as importance proxy
+                        importance_scores[feature] = df_processed[feature].var()
+                
+                if importance_scores:
+                    features = list(importance_scores.keys())
+                    scores = list(importance_scores.values())
+                    
+                    plt.barh(features, scores)
+                    plt.title('Business Features - Variance-Based Importance', fontsize=14, fontweight='bold')
+                    plt.xlabel('Variance Score')
+                    plt.tight_layout()
+                    plt.savefig(fig_dir / 'business_features_importance.png', dpi=300, bbox_inches='tight')
+                    plt.close()
+        
+        # 5. Correlation heatmap for key features
+        numeric_features = df_processed.select_dtypes(include=[np.number]).columns
+        if len(numeric_features) > 2:
+            # Limit to most important features for visualization
+            key_features = numeric_features[:15] if len(numeric_features) > 15 else numeric_features
+            
+            plt.figure(figsize=(12, 10))
+            correlation_matrix = df_processed[key_features].corr()
+            
+            mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+            sns.heatmap(correlation_matrix, mask=mask, annot=True, cmap='RdBu_r',
+                       center=0, square=True, fmt='.2f', cbar_kws={"shrink": .8})
+            plt.title('Feature Correlation Matrix (Top Features)', fontsize=14, fontweight='bold')
+            plt.tight_layout()
+            plt.savefig(fig_dir / 'feature_correlation_matrix.png', dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        self.logger.info("Visualizations created successfully")
+
+
+    def generate_summary_report(self, df_original: pd.DataFrame, df_processed: pd.DataFrame,        # Generate comprehensive HTML report
+                               feature_report: Dict[str, Any], target_col: str = None) -> str:
+        
+        self.logger.info("Generating comprehensive feature engineering report...")
+        
+        report_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>TeleRetain: Phase 2 Feature Engineering Report</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }}
+                .container {{ background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+                h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+                h2 {{ color: #34495e; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }}
+                h3 {{ color: #2c3e50; }}
+                .metric {{ background-color: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 5px; }}
+                .success {{ background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; margin: 10px 0; }}
+                .warning {{ background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin: 10px 0; }}
+                .info {{ background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; border-radius: 5px; margin: 10px 0; }}
+                table {{ border-collapse: collapse; width: 100%; margin: 15px 0; }}
+                th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
+                th {{ background-color: #3498db; color: white; }}
+                tr:nth-child(even) {{ background-color: #f2f2f2; }}
+                .highlight {{ background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; }}
+                .feature-list {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }}
+                ul {{ margin: 10px 0; padding-left: 20px; }}
+                li {{ margin: 5px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>TeleRetain: Phase 2 Feature Engineering Report</h1>
+                <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                
+                <h2>1. Executive Summary</h2>
+                <div class="highlight">
+                    <h3>Feature Engineering Results:</h3>
+                    <ul>
+                        <li><strong>Original Features:</strong> {feature_report['summary']['original_features']}</li>
+                        <li><strong>Final Features:</strong> {feature_report['summary']['final_features']}</li>
+                        <li><strong>Net Features Added:</strong> {feature_report['summary']['features_added']}</li>
+                        <li><strong>Data Quality:</strong> {self._get_data_quality_summary()}</li>
+                        <li><strong>Processing Status:</strong> ✅ Successfully Completed</li>
+                    </ul>
+                </div>
+                
+                <h2>2. Data Preprocessing Summary</h2>
+                {self._generate_preprocessing_section()}
+                
+                <h2>3. Feature Engineering Details</h2>
+                {self._generate_feature_engineering_section()}
+                
+                <h2>4. Feature Selection Results</h2>
+                {self._generate_feature_selection_section()}
+                
+                <h2>5. Data Quality Assessment</h2>
+                {self._generate_data_quality_section(df_original, df_processed)}
+                
+                <h2>6. Business Features Created</h2>
+                {self._generate_business_features_section()}
+                
+                <h2>7. Next Steps & Recommendations</h2>
+                {self._generate_recommendations_section()}
+                
+                <h2>8. Technical Artifacts</h2>
+                <div class="info">
+                    <h3>Saved Artifacts:</h3>
+                    <ul>
+                        <li>✅ Processed training data: <code>data/processed/train_processed.csv</code></li>
+                        <li>✅ Preprocessing pipeline: <code>data/processed/preprocessing_artifacts.pkl</code></li>
+                        <li>✅ Feature metadata: <code>data/processed/feature_metadata.json</code></li>
+                        <li>✅ Visualizations: <code>reports/figures/</code></li>
+                        <li>✅ Analysis logs: <code>logs/phase2_feature_engineering_*.log</code></li>
+                    </ul>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Save report
+        report_path = Path("reports") / "feature_engineering_report.html"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(report_path, 'w') as f:
+            f.write(report_html)
+        
+        self.logger.info(f"Comprehensive report saved to {report_path}")
+        return str(report_path)
+    
+    def _get_data_quality_summary(self) -> str:             # Get data quality summary
+        if 'missing_value_handling' in self.data_quality_report:
+            return "Missing values handled ✅"
+        return "No major issues detected ✅"
+    
+    def _generate_preprocessing_section(self) -> str:       # Generate preprocessing section of the report
+        section = "<div class='metric'><h3>Preprocessing Steps Applied:</h3><ul>"
+        
+        if 'missing_value_handling' in self.data_quality_report:
+            missing_info = self.data_quality_report['missing_value_handling']
+            section += f"<li>✅ <strong>Missing Value Handling:</strong> {missing_info.get('numeric', {}).get('strategy', 'N/A')} for numeric, {missing_info.get('categorical', {}).get('strategy', 'N/A')} for categorical</li>"
+        
+        if 'outlier_handling' in self.data_quality_report:
+            outlier_info = self.data_quality_report['outlier_handling']
+            outlier_count = sum(info['outliers_detected'] for info in outlier_info.values())
+            section += f"<li>✅ <strong>Outlier Handling:</strong> {outlier_count} outliers detected and handled</li>"
+        
+        if 'categorical_encoding' in self.data_quality_report:
+            encoding_info = self.data_quality_report['categorical_encoding']
+            section += f"<li>✅ <strong>Categorical Encoding:</strong> {encoding_info['method']} encoding applied</li>"
+        
+        if 'feature_scaling' in self.data_quality_report:
+            scaling_info = self.data_quality_report['feature_scaling']
+            section += f"<li>✅ <strong>Feature Scaling:</strong> {scaling_info['method']} scaling applied to {len(scaling_info['scaled_columns'])} features</li>"
+        
+        section += "</ul></div>"
+        return section
+    
+    def _generate_feature_engineering_section(self) -> str:         # Generate feature engineering section
+        
+        section = ""
+        
+        if 'business_features' in self.feature_metadata:
+            business_count = len(self.feature_metadata['business_features'])
+            section += f"<div class='success'><h3>Business Features: {business_count} created</h3>"
+            section += "<div class='feature-list'><strong>Features created:</strong><ul>"
+            for feature in self.feature_metadata['business_features'][:10]:  # Show first 10
+                section += f"<li>{feature}</li>"
+            if business_count > 10:
+                section += f"<li>... and {business_count - 10} more</li>"
+            section += "</ul></div></div>"
+        
+        if 'interaction_features' in self.feature_metadata:
+            interaction_count = len(self.feature_metadata['interaction_features'])
+            section += f"<div class='info'><h3>Interaction Features: {interaction_count} created</h3></div>"
+        
+        return section
+    
+    def _generate_feature_selection_section(self) -> str:           # Generate feature selection section
+        if 'feature_selection' not in self.feature_metadata:
+            return "<div class='warning'>No feature selection applied</div>"
+        
+        selection_info = self.feature_metadata['feature_selection']
+        section = "<div class='metric'><h3>Feature Selection Results:</h3><ul>"
+        
+        for method, info in selection_info.items():
+            if 'removed_count' in info:
+                section += f"<li><strong>{method.replace('_', ' ').title()}:</strong> {info['removed_count']} features removed</li>"
+        
+        section += "</ul></div>"
+        return section
+    
+    def _generate_data_quality_section(self, df_original: pd.DataFrame, df_processed: pd.DataFrame) -> str:     # Generate data quality section
+        section = "<div class='metric'><h3>Data Quality Metrics:</h3>"
+        section += "<table><tr><th>Metric</th><th>Original</th><th>Processed</th><th>Status</th></tr>"
+        
+        # Missing values
+        original_missing = df_original.isnull().sum().sum()
+        processed_missing = df_processed.isnull().sum().sum()
+        status = "✅ Resolved" if processed_missing == 0 else "⚠️ Some remaining"
+        section += f"<tr><td>Missing Values</td><td>{original_missing:,}</td><td>{processed_missing:,}</td><td>{status}</td></tr>"
+        
+        # Data types
+        original_numeric = len(df_original.select_dtypes(include=[np.number]).columns)
+        processed_numeric = len(df_processed.select_dtypes(include=[np.number]).columns)
+        section += f"<tr><td>Numeric Features</td><td>{original_numeric}</td><td>{processed_numeric}</td><td>✅</td></tr>"
+        
+        # Memory usage
+        original_memory = df_original.memory_usage(deep=True).sum() / 1024**2
+        processed_memory = df_processed.memory_usage(deep=True).sum() / 1024**2
+        section += f"<tr><td>Memory Usage (MB)</td><td>{original_memory:.1f}</td><td>{processed_memory:.1f}</td><td>✅</td></tr>"
+        
+        section += "</table></div>"
+        return section
+
+    def _generate_business_features_section(self) -> str:           # Generate business features section
+        if 'business_features' not in self.feature_metadata:
+            return "<div class='warning'>No business features created</div>"
+        
+        business_features = self.feature_metadata['business_features']
+        section = "<div class='success'><h3>Business-Specific Features Created:</h3>"
+        section += "<div class='feature-list'><ul>"
+        
+        feature_descriptions = {
+            'CLV_estimate': 'Customer Lifetime Value estimation (tenure × monthly charges)',
+            'ARPU': 'Average Revenue Per User (total charges / tenure)',
+            'total_services': 'Count of subscribed services',
+            'premium_services': 'Count of premium services (streaming, tech support)',
+            'contract_risk_score': 'Risk score based on contract type',
+            'payment_risk_score': 'Risk score based on payment method',
+            'customer_value_score': 'Combined customer value assessment'
+        }
+        
+        for feature in business_features:
+            description = feature_descriptions.get(feature, 'Domain-specific feature')
+            section += f"<li><strong>{feature}:</strong> {description}</li>"
+        
+        section += "</ul></div></div>"
+        return section
+    
+
+    def _generate_recommendations_section(self) -> str:         # Generate recommendations section
+        
+        recommendations = []
+        
+        # Data quality recommendations
+        if 'missing_value_handling' in self.data_quality_report:
+            recommendations.append("✅ Data preprocessing completed successfully")
+        
+        # Feature engineering recommendations  
+        if 'business_features' in self.feature_metadata:
+            recommendations.append("✅ Business features created - ready for model training")
+        
+        # Next steps
+        recommendations.extend([
+            "🎯 Proceed to Phase 3: Model Development and Training",
+            "📊 Consider A/B testing different feature combinations",
+            "🔄 Set up automated feature pipeline for production",
+            "📈 Monitor feature performance and drift in production"
+        ])
+        
+        section = "<div class='info'><h3>Recommendations & Next Steps:</h3><ul>"
+        for rec in recommendations:
+            section += f"<li>{rec}</li>"
+        section += "</ul></div>"
+        
+        return section
+    
+    def run_complete_pipeline(self, data_path: str, target_col: str = 'Churn') -> str:      # Run the complete feature engineering pipeline
+        
+        self.logger.info("Starting complete feature engineering pipeline...")
+        
+        try:
+            df_original = self.load_data(data_path)     # # Load data
+            df = df_original.copy()
+            
+            df = self.handle_missing_values(df)         # Step 1: Handle missing values
+            
+            df = self.handle_outliers(df, target_col)   # Step 2: Handle outliers
+            
+            df = self.create_business_features(df)      # Step 3: Create business features
+            
+            df = self.create_interaction_features(df)   # Step 4: Create interaction features
+            
+            df = self.encode_categorical_variables(df, target_col)      # Step 5: Encode categorical variables
+            
+            df = self.scale_features(df, target_col)    # Step 6: Scale features
+            
+            if target_col in df.columns:                # Prepare for feature selection
+
+                if df[target_col].dtype == 'object':    # Convert target to numeric if needed
+                    y = (df[target_col] == self.config['positive_class']).astype(int)
+                else:
+                    y = df[target_col]
+                
+                X = df.drop(columns=[target_col])
+                
+                X_selected = self.feature_selection(X, y)   # Step 7: Feature selection
+                
+                df_processed = pd.concat([X_selected, y], axis=1)       # Combine with target
+            else:
+                df_processed = df
+                
+            feature_report = self.create_feature_report(df_original, df_processed)      # Generate comprehensive report
+            
+            self.create_visualizations(df_original, df_processed, target_col)           # Create visualizations
+            
+            self.save_processed_data(df_processed, 'train_processed.csv')               # Save processed data and artifacts
+            self.save_preprocessing_artifacts()
+            
+            feature_report_path = self.output_dir / 'feature_engineering_report.json'   # Save feature report
+            with open(feature_report_path, 'w') as f:
+                json.dump(feature_report, f, indent=2, default=str)
+            
+            report_path = self.generate_summary_report(df_original, df_processed, feature_report, target_col)   # Generate HTML report
+            
+            self.logger.info("Feature engineering pipeline completed successfully!")
+            self._print_pipeline_summary(df_original, df_processed)
+            
+            return report_path
+            
+        except Exception as e:
+            self.logger.error(f"Error in feature engineering pipeline: {str(e)}")
+            raise
+
+    def _print_pipeline_summary(self, df_original: pd.DataFrame, df_processed: pd.DataFrame):       # Print pipeline summary to console
+   
+        print("\n" + "-"*80)
+        print("PHASE 2 FEATURE ENGINEERING SUMMARY")
+        print("-"*80)
+        
+        print(f"Original Dataset: {df_original.shape[0]:,} rows × {df_original.shape[1]} columns")
+        print(f"Processed Dataset: {df_processed.shape[0]:,} rows × {df_processed.shape[1]} columns")
+        print(f"Features Added: {df_processed.shape[1] - df_original.shape[1]}")
+        
+        if 'business_features' in self.feature_metadata:
+            business_count = len(self.feature_metadata['business_features'])
+            print(f"Business Features Created: {business_count}")
+        
+        if 'interaction_features' in self.feature_metadata:
+            interaction_count = len(self.feature_metadata['interaction_features'])
+            print(f"Interaction Features Created: {interaction_count}")
+        
+        original_missing = df_original.isnull().sum().sum()         # # Data quality improvements
+        processed_missing = df_processed.isnull().sum().sum()
+        print(f"Missing Values: {original_missing:,} → {processed_missing:,}")
+        
+        print(f"\nArtifacts saved in: data/processed/")
+        print(f"Report generated: reports/phase2_feature_engineering_report.html")
+        print(f"Visualizations: reports/figures/")
+        
+        print("="*80)
+
+def main():             # Main execution function
+    
+    # Configuration
+    DATA_PATH = "data/raw/Telco-Customer-data.csv"
+    TARGET_COLUMN = "Churn"
+    OUTPUT_DIR = "data/processed/"
+    
+    feature_engineer = AdvancedFeatureEngineer(output_dir=OUTPUT_DIR)       # Create feature engineer instance
+    
+    report_path = feature_engineer.run_complete_pipeline(DATA_PATH, TARGET_COLUMN)  # Run complete pipeline
+    
+    print(f"\n Phase 2 completed successfully!")
+    print(f" Report available at: {report_path}")
+
+if __name__ == "__main__":
+    main()
