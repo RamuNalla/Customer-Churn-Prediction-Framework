@@ -1,0 +1,75 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>TeleRetain: Phase 2 Feature Engineering Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+                .container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+                h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+                h2 { color: #34495e; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }
+                h3 { color: #2c3e50; }
+                .metric { background-color: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 5px; }
+                .success { background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; margin: 10px 0; }
+                .warning { background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin: 10px 0; }
+                .info { background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; border-radius: 5px; margin: 10px 0; }
+                table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                th { background-color: #3498db; color: white; }
+                tr:nth-child(even) { background-color: #f2f2f2; }
+                .highlight { background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 15px 0; }
+                .feature-list { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                ul { margin: 10px 0; padding-left: 20px; }
+                li { margin: 5px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>TeleRetain: Phase 2 Feature Engineering Report</h1>
+                <p><strong>Generated:</strong> 2025-09-27 20:55:11</p>
+                
+                <h2>1. Executive Summary</h2>
+                <div class="highlight">
+                    <h3>Feature Engineering Results:</h3>
+                    <ul>
+                        <li><strong>Original Features:</strong> 21</li>
+                        <li><strong>Final Features:</strong> 66</li>
+                        <li><strong>Net Features Added:</strong> 45</li>
+                        <li><strong>Data Quality:</strong> Missing values handled ✅</li>
+                        <li><strong>Processing Status:</strong> ✅ Successfully Completed</li>
+                    </ul>
+                </div>
+                
+                <h2>2. Data Preprocessing Summary</h2>
+                <div class='metric'><h3>Preprocessing Steps Applied:</h3><ul><li>✅ <strong>Missing Value Handling:</strong> median for numeric, N/A for categorical</li><li>✅ <strong>Outlier Handling:</strong> 1081 outliers detected and handled</li><li>✅ <strong>Categorical Encoding:</strong> onehot encoding applied</li><li>✅ <strong>Feature Scaling:</strong> standard scaling applied to 26 features</li></ul></div>
+                
+                <h2>3. Feature Engineering Details</h2>
+                <div class='success'><h3>Business Features: 16 created</h3><div class='feature-list'><strong>Features created:</strong><ul><li>CLV_estimate</li><li>CLV_per_month</li><li>ARPU</li><li>total_services</li><li>premium_services</li><li>service_adoption_rate</li><li>contract_risk_score</li><li>payment_risk_score</li><li>is_new_customer</li><li>is_loyal_customer</li><li>... and 6 more</li></ul></div></div><div class='info'><h3>Interaction Features: 12 created</h3></div>
+                
+                <h2>4. Feature Selection Results</h2>
+                <div class='metric'><h3>Feature Selection Results:</h3><ul><li><strong>Variance Removal:</strong> 7043 features removed</li></ul></div>
+                
+                <h2>5. Data Quality Assessment</h2>
+                <div class='metric'><h3>Data Quality Metrics:</h3><table><tr><th>Metric</th><th>Original</th><th>Processed</th><th>Status</th></tr><tr><td>Missing Values</td><td>7</td><td>0</td><td>✅ Resolved</td></tr><tr><td>Numeric Features</td><td>4</td><td>66</td><td>✅</td></tr><tr><td>Memory Usage (MB)</td><td>6.5</td><td>3.5</td><td>✅</td></tr></table></div>
+                
+                <h2>6. Business Features Created</h2>
+                <div class='success'><h3>Business-Specific Features Created:</h3><div class='feature-list'><ul><li><strong>CLV_estimate:</strong> Customer Lifetime Value estimation (tenure × monthly charges)</li><li><strong>CLV_per_month:</strong> Domain-specific feature</li><li><strong>ARPU:</strong> Average Revenue Per User (total charges / tenure)</li><li><strong>total_services:</strong> Count of subscribed services</li><li><strong>premium_services:</strong> Count of premium services (streaming, tech support)</li><li><strong>service_adoption_rate:</strong> Domain-specific feature</li><li><strong>contract_risk_score:</strong> Risk score based on contract type</li><li><strong>payment_risk_score:</strong> Risk score based on payment method</li><li><strong>is_new_customer:</strong> Domain-specific feature</li><li><strong>is_loyal_customer:</strong> Domain-specific feature</li><li><strong>above_avg_charges:</strong> Domain-specific feature</li><li><strong>has_internet:</strong> Domain-specific feature</li><li><strong>fiber_optic_user:</strong> Domain-specific feature</li><li><strong>phone_service_complexity:</strong> Domain-specific feature</li><li><strong>family_score:</strong> Domain-specific feature</li><li><strong>customer_value_score:</strong> Combined customer value assessment</li></ul></div></div>
+                
+                <h2>7. Next Steps & Recommendations</h2>
+                <div class='info'><h3>Recommendations & Next Steps:</h3><ul><li>✅ Data preprocessing completed successfully</li><li>✅ Business features created - ready for model training</li><li>🎯 Proceed to Phase 3: Model Development and Training</li><li>📊 Consider A/B testing different feature combinations</li><li>🔄 Set up automated feature pipeline for production</li><li>📈 Monitor feature performance and drift in production</li></ul></div>
+                
+                <h2>8. Technical Artifacts</h2>
+                <div class="info">
+                    <h3>Saved Artifacts:</h3>
+                    <ul>
+                        <li>✅ Processed training data: <code>data/processed/train_processed.csv</code></li>
+                        <li>✅ Preprocessing pipeline: <code>data/processed/preprocessing_artifacts.pkl</code></li>
+                        <li>✅ Feature metadata: <code>data/processed/feature_metadata.json</code></li>
+                        <li>✅ Visualizations: <code>reports/figures/</code></li>
+                        <li>✅ Analysis logs: <code>logs/phase2_feature_engineering_*.log</code></li>
+                    </ul>
+                </div>
+            </div>
+        </body>
+        </html>
+        

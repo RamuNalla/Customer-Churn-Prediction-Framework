@@ -74,9 +74,9 @@ feature_engineering:
 # Feature selection
 feature_selection:
   methods:
-    - "correlation"  # Remove highly correlated features
+    #- "correlation"  # Remove highly correlated features
     - "variance"     # Remove low variance features
-    - "rfe"         # Recursive feature elimination
+    #- "rfe"         # Recursive feature elimination
     
   correlation_threshold: 0.95
   variance_threshold: 0.01

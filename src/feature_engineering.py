@@ -30,18 +30,23 @@ sns.set_palette("husl")
 class AdvancedFeatureEngineer:          # Advanced feature engineering pipeline
     
     def __init__(self, output_dir: str = "data/processed/", 
-                 config_path: str = "configs/data_config.yaml"):
-        
+                 config_path: str = "data_config.yaml"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        self.config_path = config_path
+
+        # Always resolve config_path relative to the parent directory of this file unless absolute
+        if not Path(config_path).is_absolute():
+            # Get parent directory of this file (src/)
+            parent_dir = Path(__file__).parent.parent
+            self.config_path = str(parent_dir / "configs" / config_path)
+        else:
+            self.config_path = config_path
+
         self.preprocessing_artifacts = {}
         self.feature_metadata = {}
         self.data_quality_report = {}
-        
+
         self._setup_logging()           # Setup logging
-        
         self._load_config()             # Load configuration if available
 
 
@@ -109,7 +114,7 @@ class AdvancedFeatureEngineer:          # Advanced feature engineering pipeline
                 }
             },
             'feature_selection': {
-                'methods': ['correlation', 'variance', 'univariate'],
+                'methods': ['correlation', 'variance'],
                 'correlation_threshold': 0.95,
                 'variance_threshold': 0.01,
                 'univariate_k': 50
@@ -580,7 +585,7 @@ class AdvancedFeatureEngineer:          # Advanced feature engineering pipeline
         X_selected = X.copy()
         selection_info = {}
         selected_features = list(X.columns)
-        
+        x = 0
         # 1. Remove highly correlated features
         if 'correlation' in self.config['feature_selection']['methods']:
             self.logger.info("Removing highly correlated features...")
@@ -592,6 +597,7 @@ class AdvancedFeatureEngineer:          # Advanced feature engineering pipeline
             
             threshold = self.config['feature_selection']['correlation_threshold']
             high_corr_features = [col for col in upper_triangle.columns if any(upper_triangle[col] > threshold)]
+            print(f"Length of high correlated features:{len(high_corr_features)}")
             
             X_selected = X_selected.drop(columns=high_corr_features)
             selected_features = [f for f in selected_features if f not in high_corr_features]
@@ -974,7 +980,7 @@ class AdvancedFeatureEngineer:          # Advanced feature engineering pipeline
         report_path = Path("reports") / "feature_engineering_report.html"
         report_path.parent.mkdir(parents=True, exist_ok=True)
         
-        with open(report_path, 'w') as f:
+        with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report_html)
         
         self.logger.info(f"Comprehensive report saved to {report_path}")
