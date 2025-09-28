@@ -199,6 +199,167 @@ class AdvancedModelDeveloper:       # Advanced Model Development Pipeline
         except Exception as e:
             self.logger.error(f"Error loading data: {str(e)}")
             raise
+
+    
+    def create_train_validation_test_split(self, X: pd.DataFrame, y: pd.Series) -> Tuple:   # Create train/validation/test splits
+        
+        self.logger.info("Creating train/validation/test splits...")
+        
+        test_size = self.config['test_size']
+        val_size = self.config['validation_size']
+
+        X_temp, X_test, y_temp, y_test = train_test_split(      # First split: separate test set
+            X, y, test_size=test_size, random_state=self.random_state, stratify=y
+        )
+        
+        # Second split: separate train and validation from remaining data
+        val_size_adjusted = val_size / (1 - test_size)  # Adjust for remaining data
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_temp, y_temp, test_size=val_size_adjusted, 
+            random_state=self.random_state, stratify=y_temp
+        )
+        
+        self.logger.info(f"Data splits created:")
+        self.logger.info(f"  Train: {X_train.shape[0]} samples ({y_train.sum()} positive)")
+        self.logger.info(f"  Validation: {X_val.shape[0]} samples ({y_val.sum()} positive)")
+        self.logger.info(f"  Test: {X_test.shape[0]} samples ({y_test.sum()} positive)")
+        
+        return X_train, X_val, X_test, y_train, y_val, y_test
+    
+    
+    def initialize_base_models(self) -> Dict[str, Any]:     # Initialize base machine learning models
+        
+        self.logger.info("Initializing base models...")
+        
+        models = {}
+        
+        # Logistic Regression
+        if self.config['models']['logistic_regression']:
+            models['logistic_regression'] = LogisticRegression(
+                random_state=self.random_state,
+                max_iter=1000,
+                n_jobs=self.config['optimization'].get('n_jobs', -1)
+            )
+        
+        # Random Forest
+        if self.config['models']['random_forest']:
+            models['random_forest'] = RandomForestClassifier(
+                random_state=self.random_state,
+                n_jobs=self.config['optimization'].get('n_jobs', -1)
+            )
+        
+        # XGBoost
+        if self.config['models']['xgboost']:
+            models['xgboost'] = xgb.XGBClassifier(
+                random_state=self.random_state,
+                n_jobs=self.config['optimization'].get('n_jobs', -1),
+                eval_metric='logloss'
+            )
+        
+        # LightGBM
+        if self.config['models']['lightgbm']:
+            models['lightgbm'] = lgb.LGBMClassifier(
+                random_state=self.random_state,
+                n_jobs=self.config['optimization'].get('n_jobs', -1),
+                verbose=-1
+            )
+        
+        # CatBoost
+        if self.config['models']['catboost']:
+            models['catboost'] = CatBoostClassifier(
+                random_state=self.random_state,
+                verbose=False
+            )
+        
+        # Support Vector Machine
+        if self.config['models']['svm']:
+            models['svm'] = SVC(
+                random_state=self.random_state,
+                probability=True  # Enable probability prediction
+            )
+        
+        # Naive Bayes
+        if self.config['models']['naive_bayes']:
+            models['naive_bayes'] = GaussianNB()
+        
+        # K-Nearest Neighbors
+        if self.config['models']['knn']:
+            models['knn'] = KNeighborsClassifier(
+                n_jobs=self.config['optimization'].get('n_jobs', -1)
+            )
+        
+        # Extra Trees
+        models['extra_trees'] = ExtraTreesClassifier(
+            random_state=self.random_state,
+            n_jobs=self.config['optimization'].get('n_jobs', -1)
+        )
+        
+        # Decision Tree (for ensemble diversity)
+        models['decision_tree'] = DecisionTreeClassifier(
+            random_state=self.random_state
+        )
+        
+        self.logger.info(f"Initialized {len(models)} base models: {list(models.keys())}")
+        return models
+    
+    def train_baseline_models(self, X_train: pd.DataFrame, y_train: pd.Series,
+                            X_val: pd.DataFrame, y_val: pd.Series) -> Dict[str, Dict]:      # Train baseline models with default parameters
+        
+        self.logger.info("Training baseline models...")
+        
+        models = self.initialize_base_models()
+        results = {}
+        
+        for name, model in models.items():
+            self.logger.info(f"Training baseline {name}...")
+            
+            try:
+                # Train model
+                start_time = datetime.now()
+                
+                # Handle models that support early stopping
+                if name in ['xgboost', 'lightgbm', 'catboost']:
+                    model.fit(
+                        X_train, y_train,
+                        eval_set=[(X_val, y_val)],
+                        early_stopping_rounds=50,
+                        verbose=False
+                    )
+                else:
+                    model.fit(X_train, y_train)
+                
+                training_time = (datetime.now() - start_time).total_seconds()
+                
+                # Make predictions
+                y_pred = model.predict(X_val)
+                y_pred_proba = model.predict_proba(X_val)[:, 1]
+                
+                # Calculate metrics
+                metrics = self._calculate_metrics(y_val, y_pred, y_pred_proba)
+                metrics['training_time'] = training_time
+                
+                results[name] = {
+                    'model': model,
+                    'metrics': metrics,
+                    'predictions': {
+                        'y_pred': y_pred,
+                        'y_pred_proba': y_pred_proba
+                    }
+                }
+                
+                self.logger.info(f"  {name}: AUC = {metrics['roc_auc']:.4f}, "
+                               f"Precision = {metrics['precision']:.4f}, "
+                               f"Recall = {metrics['recall']:.4f}")
+                
+            except Exception as e:
+                self.logger.error(f"Error training {name}: {str(e)}")
+                continue
+        
+        self.models.update({f"{name}_baseline": result['model'] for name, result in results.items()})
+        self.model_results.update({f"{name}_baseline": result for name, result in results.items()})
+        
+        self.logger.info(f"Baseline training completed for {len(results)} models")
+        return results
         
 
 
