@@ -1247,6 +1247,165 @@ class AdvancedModelDeveloper:       # Advanced Model Development Pipeline
                                     cv_results: Dict[str, Dict],
                                     interpretation_results: Dict[str, Any]) -> str:
         """Generate comprehensive HTML report"""
-        self.logger.info("Generating comprehensive model development report...")
+        self.logger.info("Generating comprehensive HTML report...")
+        
+        report_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>TeleRetain - Model Development Report</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }}
+                .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }}
+                h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+                h2 {{ color: #34495e; margin-top: 30px; }}
+                table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
+                th {{ background-color: #3498db; color: white; }}
+                tr:nth-child(even) {{ background-color: #f2f2f2; }}
+                .metric-box {{ background: #ecf0f1; padding: 15px; margin: 10px; border-radius: 5px; display: inline-block; }}
+                .metric-value {{ font-size: 24px; font-weight: bold; color: #2980b9; }}
+                .metric-label {{ font-size: 14px; color: #7f8c8d; }}
+                .success {{ background-color: #d5f4e6; padding: 15px; border-left: 4px solid #27ae60; margin: 20px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🎯 TeleRetain - Model Development Report</h1>
+                <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                
+                <div class="success">
+                    <h3>✅ Model Development Completed Successfully</h3>
+                    <p>Trained and evaluated {len(self.model_results)} models including baseline, optimized, and ensemble methods.</p>
+                </div>
+                
+                <h2>🏆 Best Model: {self.best_model['name'] if self.best_model else 'N/A'}</h2>
+                {self._get_best_model_html()}
+                
+                <h2>📊 Model Comparison</h2>
+                {comparison_df.to_html(index=False, classes='table')}
+                
+                <h2>📈 Visualizations</h2>
+                <img src="figures/model_performance_comparison.png" style="max-width: 100%; height: auto;">
+                <img src="figures/best_model_confusion_matrix.png" style="max-width: 100%; height: auto;">
+                
+                <h2>💡 Key Insights</h2>
+                {self._get_insights_html(comparison_df)}
+                
+            </div>
+        </body>
+        </html>
+        """
+        
+        report_path = Path("reports/phase3_model_development_report.html")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(report_path, 'w') as f:
+            f.write(report_html)
+        
+        self.logger.info(f"Report saved to {report_path}")
+        return str(report_path)
+    
+    def _get_best_model_html(self) -> str:
+        """Generate HTML for best model metrics"""
+        if not self.best_model:
+            return "<p>No best model selected yet.</p>"
+        
+        metrics = self.best_model['metrics']
+        html = ""
+        for metric_name in ['roc_auc', 'precision', 'recall', 'f1_score', 'accuracy']:
+            if metric_name in metrics:
+                html += f"""
+                <div class="metric-box">
+                    <div class="metric-value">{metrics[metric_name]:.3f}</div>
+                    <div class="metric-label">{metric_name.replace('_', ' ').title()}</div>
+                </div>
+                """
+        return html
+
+    def _get_insights_html(self, comparison_df: pd.DataFrame) -> str:
+        """Generate insights HTML"""
+        best_auc = comparison_df['AUC'].iloc[0] if len(comparison_df) > 0 else 0
+        
+        insights = "<ul>"
+        if best_auc > 0.85:
+            insights += "<li>✅ Excellent performance achieved (AUC > 0.85)</li>"
+        elif best_auc > 0.80:
+            insights += "<li>✅ Good performance achieved (AUC > 0.80)</li>"
+        else:
+            insights += "<li>⚠️ Performance could be improved with additional feature engineering</li>"
+        
+        insights += f"<li>📊 Trained {len(self.model_results)} models total</li>"
+        insights += "<li>🎯 Ready for production deployment with proper monitoring</li>"
+        insights += "</ul>"
+        
+        return insights
+    
+    def run_complete_pipeline(self, data_path: str, target_col: str = 'Churn',
+                            models_to_optimize: List[str] = None):
+        """Run the complete model development pipeline"""
+        self.logger.info("="*70)
+        self.logger.info("STARTING COMPLETE MODEL DEVELOPMENT PIPELINE")
+        self.logger.info("="*70)
+        
+        # Step 1: Load data
+        X, y = self.load_data(data_path, target_col)
+        
+        # Step 2: Create splits
+        X_train, X_val, X_test, y_train, y_val, y_test = self.create_train_validation_test_split(X, y)
+        
+        # Step 3: Train baseline models
+        self.train_baseline_models(X_train, y_train, X_val, y_val)
+        
+        # Step 4: Train optimized models
+        if models_to_optimize is None:
+            models_to_optimize = ['random_forest', 'xgboost', 'lightgbm']
+        self.train_optimized_models(X_train, y_train, X_val, y_val, models_to_optimize)
+        
+        # Step 5: Create ensemble models
+        self.create_ensemble_models(X_train, y_train, X_val, y_val)
+        
+        # Step 6: Evaluate on test set
+        test_results = self.evaluate_all_models(X_test, y_test)
+        
+        # Step 7: Cross-validation
+        cv_results = self.cross_validate_models(X, y)
+        
+        # Step 8: Model interpretation
+        interpretation_results = {}
+        if self.best_model:
+            interpretation_results = self.model_interpretation(
+                self.best_model['name'], X_test
+            )
+        
+        # Step 9: Generate comparison report
+        comparison_df = self.generate_model_comparison_report(test_results)
+        
+        # Step 10: Create visualizations
+        self.create_visualizations(test_results, comparison_df)
+        
+        # Step 11: Save models
+        saved_files = self.save_models_and_results()
+        
+        # Step 12: Generate comprehensive report
+        report_path = self.generate_comprehensive_report(
+            comparison_df, cv_results, interpretation_results
+        )
+        
+        self.logger.info("="*70)
+        self.logger.info("MODEL DEVELOPMENT PIPELINE COMPLETED SUCCESSFULLY")
+        self.logger.info("="*70)
+        self.logger.info(f"Best Model: {self.best_model['name']}")
+        self.logger.info(f"Best AUC: {self.best_model['metrics']['roc_auc']:.4f}")
+        self.logger.info(f"Report saved to: {report_path}")
+        
+        return {
+            'best_model': self.best_model,
+            'test_results': test_results,
+            'comparison_df': comparison_df,
+            'saved_files': saved_files,
+            'report_path': report_path
+        }
+
 
 sample = AdvancedModelDeveloper()
